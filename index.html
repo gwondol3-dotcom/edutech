@@ -22,6 +22,7 @@
     .tool-card { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
     .tool-card:hover { transform: translateY(-3px); box-shadow: 0 18px 45px rgba(23,32,51,.12); }
     .modal-open { overflow: hidden; }
+    .zoomable { cursor: zoom-in; }
     .focus-ring:focus { outline: 3px solid rgba(20,184,166,.35); outline-offset: 2px; }
     .top-badge { max-width: 100%; white-space: normal; }
     @media (max-width: 640px) { .card-img { aspect-ratio: 4 / 3; } .step-img { aspect-ratio: 4 / 3; } .hero-title { font-size: 2.35rem; line-height: 1.15; } }
@@ -38,7 +39,7 @@
       <section class="grid gap-7 py-10 lg:grid-cols-[1.1fr_.9fr] lg:items-end">
         <div>
           <p class="mb-3 inline-flex rounded-full bg-white/80 px-3 py-1 text-sm font-semibold text-teal-700">교육적 필요에서 출발하는 도구 실습</p>
-          <h1 class="hero-title max-w-3xl text-4xl font-black leading-tight tracking-normal text-ink sm:text-5xl lg:text-6xl">에듀테크 활용 교육 실습 워크숍</h1>
+          <h1 class="hero-title max-w-3xl text-4xl font-black leading-tight tracking-normal text-ink sm:text-5xl lg:text-6xl">에듀테크 활용 교육 실습</h1>
           <p class="mt-5 max-w-2xl text-base leading-7 text-slate-700 sm:text-lg">교재의 흐름에 맞춰 보드형 에듀테크와 퀴즈형 에듀테크를 직접 살펴보고, 학교 현장에서 바로 적용할 수 있는 작은 산출물을 만들어 봅니다.</p>
         </div>
         <div class="glass rounded-[8px] border border-white p-4 shadow-soft">
@@ -101,6 +102,19 @@
     </section>
   </div>
 
+  <div id="imageModal" class="fixed inset-0 z-[60] hidden" role="dialog" aria-modal="true" aria-labelledby="imageModalTitle">
+    <div class="absolute inset-0 bg-slate-950/80" data-image-close="true"></div>
+    <section class="absolute inset-x-3 top-4 mx-auto flex max-h-[92vh] max-w-6xl flex-col rounded-[8px] bg-white shadow-2xl sm:top-8">
+      <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+        <h2 id="imageModalTitle" class="text-base font-black text-ink">이미지 크게 보기</h2>
+        <button id="closeImageModal" class="focus-ring rounded-full border border-slate-300 px-3 py-2 text-sm font-bold">닫기</button>
+      </div>
+      <div class="overflow-auto bg-slate-100 p-3">
+        <img id="largeImage" class="mx-auto max-h-[78vh] max-w-full rounded-[8px] bg-white object-contain" src="" alt="">
+      </div>
+    </section>
+  </div>
+
   <footer class="mt-10 border-t border-slate-200 bg-white px-5 py-8 text-center text-sm text-slate-500">참고: 2026 교(원)감 교육정보화 직무연수 교재 「에듀테크 활용 교육」의 실습 흐름을 바탕으로 구성</footer>
 
   <script>
@@ -110,6 +124,9 @@
     const modalBody = document.getElementById('modalBody');
     const modalTitle = document.getElementById('modalTitle');
     const modalKicker = document.getElementById('modalKicker');
+    const imageModal = document.getElementById('imageModal');
+    const imageModalTitle = document.getElementById('imageModalTitle');
+    const largeImage = document.getElementById('largeImage');
     const progressBar = document.getElementById('progressBar');
     const progressCount = document.getElementById('progressCount');
     let activeFilter = 'all';
@@ -132,7 +149,7 @@
       });
       grid.innerHTML = filtered.map(tool => `
         <article class="tool-card overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-sm">
-          <img class="card-img w-full" src="${tool.hero}" alt="${escapeHtml(tool.title)} 실습 화면">
+          <img class="card-img zoomable w-full" src="${tool.hero}" alt="${escapeHtml(tool.title)} 실습 화면" data-zoom="${tool.hero}" data-zoom-title="${escapeHtml(tool.title)} 실습 화면">
           <div class="p-5">
             <div class="mb-4 flex items-center gap-3"><img class="h-10 w-10 rounded-[8px] border border-slate-200 object-contain bg-white" src="${tool.logo}" alt="${escapeHtml(tool.title)} 로고"><div><h2 class="text-xl font-black text-ink">${escapeHtml(tool.title)}</h2><p class="text-xs font-semibold text-slate-500">${tool.type === 'board' ? '보드형 에듀테크' : '퀴즈형 에듀테크'}</p></div></div>
             <p class="min-h-16 text-sm leading-6 text-slate-600">${escapeHtml(tool.summary)}</p>
@@ -144,13 +161,33 @@
     function openTool(id) {
       const tool = tools.find(item => item.id === id);
       modalTitle.textContent = tool.title; modalKicker.textContent = tool.subtitle;
-      modalBody.innerHTML = `<div class="grid gap-5 lg:grid-cols-[.9fr_1.1fr]"><div><img class="w-full rounded-[8px] border border-slate-200 bg-slate-50 object-contain" src="${tool.hero}" alt="${escapeHtml(tool.title)} 대표 화면"><div class="mt-4 rounded-[8px] bg-slate-50 p-4"><h3 class="font-black text-ink">실습 미션</h3><p class="mt-2 text-sm leading-6 text-slate-700">${escapeHtml(tool.mission)}</p><a class="focus-ring mt-4 inline-flex rounded-[8px] border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-ink" href="${tool.url}" target="_blank" rel="noopener">서비스 접속</a></div></div><div class="space-y-4">${tool.steps.map((step, idx) => { const key = `${tool.id}-${idx}`; const checked = !!checkedKeys()[key]; return `<article class="rounded-[8px] border border-slate-200 bg-white p-4"><label class="flex items-start gap-3"><input type="checkbox" class="mt-1 checklist" data-key="${key}" ${checked ? 'checked' : ''}><span><b class="block text-lg text-ink">${idx + 1}. ${escapeHtml(step.title)}</b><span class="mt-1 block text-sm leading-6 text-slate-600">${escapeHtml(step.text)}</span></span></label><img class="step-img mt-4 w-full rounded-[8px] border border-slate-200" src="${step.img}" alt="${escapeHtml(step.title)} 화면"></article>`; }).join('')}</div></div>`;
+      modalBody.innerHTML = `<div class="grid gap-5 lg:grid-cols-[.9fr_1.1fr]"><div><img class="zoomable w-full rounded-[8px] border border-slate-200 bg-slate-50 object-contain" src="${tool.hero}" alt="${escapeHtml(tool.title)} 대표 화면" data-zoom="${tool.hero}" data-zoom-title="${escapeHtml(tool.title)} 대표 화면"><div class="mt-4 rounded-[8px] bg-slate-50 p-4"><h3 class="font-black text-ink">실습 미션</h3><p class="mt-2 text-sm leading-6 text-slate-700">${escapeHtml(tool.mission)}</p><a class="focus-ring mt-4 inline-flex rounded-[8px] border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-ink" href="${tool.url}" target="_blank" rel="noopener">서비스 접속</a></div></div><div class="space-y-4">${tool.steps.map((step, idx) => { const key = `${tool.id}-${idx}`; const checked = !!checkedKeys()[key]; return `<article class="rounded-[8px] border border-slate-200 bg-white p-4"><label class="flex items-start gap-3"><input type="checkbox" class="mt-1 checklist" data-key="${key}" ${checked ? 'checked' : ''}><span><b class="block text-lg text-ink">${idx + 1}. ${escapeHtml(step.title)}</b><span class="mt-1 block text-sm leading-6 text-slate-600">${escapeHtml(step.text)}</span></span></label><img class="step-img zoomable mt-4 w-full rounded-[8px] border border-slate-200" src="${step.img}" alt="${escapeHtml(step.title)} 화면" data-zoom="${step.img}" data-zoom-title="${escapeHtml(step.title)} 화면"></article>`; }).join('')}</div></div>`;
       modal.classList.remove('hidden'); document.body.classList.add('modal-open');
     }
+    function openImageModal(src, title) {
+      largeImage.src = src;
+      largeImage.alt = title || '확대 이미지';
+      imageModalTitle.textContent = title || '이미지 크게 보기';
+      imageModal.classList.remove('hidden');
+      document.body.classList.add('modal-open');
+    }
+    function closeImageModal() {
+      imageModal.classList.add('hidden');
+      largeImage.src = '';
+      if (modal.classList.contains('hidden')) document.body.classList.remove('modal-open');
+    }
     function closeModal() { modal.classList.add('hidden'); document.body.classList.remove('modal-open'); }
-    document.addEventListener('click', event => { const open = event.target.closest('[data-open]'); if (open) openTool(open.dataset.open); if (event.target.matches('[data-close="true"]')) closeModal(); });
+    document.addEventListener('click', event => {
+      const zoom = event.target.closest('[data-zoom]');
+      if (zoom) { openImageModal(zoom.dataset.zoom, zoom.dataset.zoomTitle); return; }
+      const open = event.target.closest('[data-open]');
+      if (open) openTool(open.dataset.open);
+      if (event.target.matches('[data-close="true"]')) closeModal();
+      if (event.target.matches('[data-image-close="true"]')) closeImageModal();
+    });
     document.getElementById('closeModal').addEventListener('click', closeModal);
-    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
+    document.getElementById('closeImageModal').addEventListener('click', closeImageModal);
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') { if (!imageModal.classList.contains('hidden')) closeImageModal(); else closeModal(); } });
     document.addEventListener('change', event => { if (event.target.classList.contains('checklist')) saveCheck(event.target.dataset.key, event.target.checked); });
     document.querySelectorAll('.chip').forEach(button => { button.addEventListener('click', () => { activeFilter = button.dataset.filter; document.querySelectorAll('.chip').forEach(item => item.classList.remove('active')); button.classList.add('active'); renderCards(); }); });
     document.getElementById('searchInput').addEventListener('input', renderCards);
